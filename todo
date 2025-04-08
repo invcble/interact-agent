@@ -1,6 +1,11 @@
-fix scroll return, it returns entire html now
-fix interaction in browser api
-enter button functionality after typing
-think about a better way of chaining
+fix scroll return, it returns entire html - done
+fix interaction (click/input/scroll) in browser api - done
+pass only visible portion of the content - done
+co-ordinate in content updates after scrolling - done
 
-intuitive ( anything/change is followed by vision + old vision being cleared )
+browserAPI improvement: dont expose get_page_content, detect change and pass content
+update llmAPI for new code, test simple behavior
+llmAPI improvement: clear old vision to save tokens
+captcha api through vlm
+add random events to prevent captcha
+preserve login, certificates and cache

@@ -1,0 +1,6 @@
+fix scroll return, it returns entire html now
+fix interaction in browser api
+enter button functionality after typing
+think about a better way of chaining
+
+intuitive ( anything/change is followed by vision + old vision being cleared )

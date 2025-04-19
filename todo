@@ -2,10 +2,15 @@ fix scroll return, it returns entire html - done
 fix interaction (click/input/scroll) in browser api - done
 pass only visible portion of the content - done
 co-ordinate in content updates after scrolling - done
+browserAPI improvement: dont expose get_page_content, detect change and pass content - done
+update llmAPI for new code, test simple behavior - done
+llmAPI improvement: clear old vision to save tokens - done
 
-browserAPI improvement: dont expose get_page_content, detect change and pass content
-update llmAPI for new code, test simple behavior
-llmAPI improvement: clear old vision to save tokens
+Pop-Up / Modal Interaction Handling: If an action (e.g., "Add to cart", "Confirm", "Continue") appears to be within a modal or pop-up (identified by elements like a-popover-start, close buttons, or modal-like containers), assume the interaction must be confirmed within the pop-up.
 captcha api through vlm
 add random events to prevent captcha
 preserve login, certificates and cache
+
+
+add scroll up, 
+'error_message': 'Click failed at (0.0, -431.0): Message: move target out of bounds

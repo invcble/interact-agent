@@ -31,10 +31,12 @@ class BrowserAPI:
             else:
                 self.driver = webdriver.Chrome(options=options)
 
-            self.driver.set_window_size(1920, 1080)
+            self.driver.set_window_size(1080, 1080)
+
             return {
                 "status": "success",
-                "message": "Browser started"
+                "message": "Browser started",
+                "content": "No content yet, visit an URL to get content"
             }
 
         except Exception as e:
@@ -43,27 +45,6 @@ class BrowserAPI:
                 "error_message": f"Failed to start browser: {e}"
             }
 
-    def go_to_website(self, url):
-        """Navigate to a specified URL."""
-        if not self.driver:
-            return {
-                "status": "error",
-                "error_message": "Browser not started"
-            }
-
-        try:
-            self.driver.get(url)
-            return {
-                "status": "success",
-                "message": f"Navigated to {url}"
-            }
-
-        except Exception as e:
-            return {
-                "status": "error",
-                "error_message": f"Navigation failed: {e}"
-            }
-    
     def _get_page_content(self):
         """
         Extract structured page content, but ONLY include those interactive elements
@@ -73,15 +54,12 @@ class BrowserAPI:
         if not self.driver:
             return {"error": "Browser not started yet."}
         
-        # Read JS from a separate file
+        # Read JS from a separate file & Execute
         script_path = os.path.join(os.path.dirname(__file__), "get_visible_elements.js")
         with open(script_path, "r", encoding="utf-8") as f:
             js_script = f.read()
         
-        # Execute the JavaScript and get the result
         page_content = self.driver.execute_script(js_script)
-        
-        # Format the content in a simpler textual form
         formatted_elements = []
         
         for elem in page_content["interactiveElements"]:
@@ -107,6 +85,59 @@ class BrowserAPI:
             "elements": formatted_elements,
             "element_count": len(page_content["interactiveElements"])
         }
+    
+    def refresh_content(self):
+        """
+        Re-extract the latest page content without reloading the page.
+        Useful for checking for dynamic changes on the current page.
+        """
+        if not self.driver:
+            return {
+                "status": "error",
+                "error_message": "Browser not started"
+            }
+
+        try:
+            time.sleep(2)
+            content = self._get_page_content()
+
+            return {
+                "status": "success",
+                "message": "Page content refreshed successfully",
+                "content": content
+            }
+
+        except Exception as e:
+            return {
+                "status": "error",
+                "error_message": f"Content refresh failed: {e}"
+            }
+
+    
+    def go_to_website(self, url):
+        """Navigate to a specified URL."""
+        if not self.driver:
+            return {
+                "status": "error",
+                "error_message": "Browser not started"
+            }
+
+        try:
+            self.driver.get(url)
+            time.sleep(5)
+            content = self._get_page_content()
+
+            return {
+                "status": "success",
+                "message": f"Navigated to {url}",
+                "content": content
+            }
+
+        except Exception as e:
+            return {
+                "status": "error",
+                "error_message": f"Navigation failed: {e}"
+            }
 
     def click_at_coordinates(self, x, y):
         """
@@ -131,7 +162,13 @@ class BrowserAPI:
             else:
                 actions.move_by_offset(x, y).click().perform()
 
-            return { "status": "success" }
+            time.sleep(5)
+            content = self._get_page_content()
+
+            return { 
+                "status": "success",
+                "content": content 
+            }
 
         except Exception as e:
             return {
@@ -152,6 +189,9 @@ class BrowserAPI:
             }
 
         try:
+            #temp offset
+            x += 15
+            
             element = self.driver.execute_script(
                 "return document.elementFromPoint(arguments[0], arguments[1]);", x, y
             )
@@ -161,8 +201,14 @@ class BrowserAPI:
                 actions.move_to_element_with_offset(element, 1, 1).click().send_keys(text).perform()
             else:
                 actions.move_by_offset(x, y).click().send_keys(text).perform()
+            
+            time.sleep(5)
+            content = self._get_page_content()
 
-            return { "status": "success" }
+            return { 
+                "status": "success",
+                "content": content
+            }
 
         except Exception as e:
             return {
@@ -192,9 +238,13 @@ class BrowserAPI:
                 });
             """, x, y)
 
+            time.sleep(5)
+            content = self._get_page_content()
+
             return {
                 "status": "success",
-                "message": f"Scrolled smoothly by ({x}, {y}) pixels"
+                "message": f"Scrolled smoothly by ({x}, {y}) pixels",
+                "content": content
             }
 
         except Exception as e:
@@ -218,7 +268,8 @@ class BrowserAPI:
             self.driver = None
             return {
                 "status": "success",
-                "message": "Browser closed"
+                "message": "Browser closed",
+                "content": "No content as browser closed"
             }
 
         except Exception as e:
@@ -228,34 +279,73 @@ class BrowserAPI:
             }
 
 
-# Continue shopping (at x:478, y:474)
-# class='a-span12'>  (at x:496, y:391)
-# Conditions of Use (at x:531, y:521)
+def show_menu():
+    print("""
+Choose an action:
+1. Start Browser
+2. Go to Website
+3. Get Page Content
+4. Input Something at x,y
+5. Click at Coordinates
+6. Close Browser
+0. Exit
+""")
+
 if __name__ == "__main__":
     browser_api = BrowserAPI()  # or BrowserAPI(driver_path="/path/to/chromedriver")
-    
-    # 1) Start the browser
-    print(browser_api.start_browser())
+    browser_started = False
 
-    # 2) Go to a website
-    print(browser_api.go_to_website("https://www.amazon.com/"))
-    time.sleep(3)
+    while True:
+        show_menu()
+        choice = input("Enter your choice: ")
 
-    print(browser_api._get_page_content())
-    time.sleep(1)
+        if choice == "1":
+            print(browser_api.start_browser())
+            browser_started = True
 
-    captcha = input("Enter captcha: ")
+        elif choice == "2":
+            if not browser_started:
+                print("Please start the browser first.")
+                continue
+            url = input("Enter URL to visit: ")
+            print(browser_api.go_to_website(url))
 
-    print(browser_api.input_text_at_coordinates(496, 391, captcha))
-    time.sleep(3)
+        elif choice == "3":
+            if not browser_started:
+                print("Please start the browser first.")
+                continue
+            print(browser_api._get_page_content())
 
-    print(browser_api.click_at_coordinates(478, 474))
-    # browser_api.scroll_page()
-    # time.sleep(5)
-    # print(browser_api.get_page_content())
-    # time.sleep(3)
-    # print("clicking")
-    # print(browser_api.click_at_coordinates(531, 521))
-    time.sleep(100)
+        elif choice == "4":
+            if not browser_started:
+                print("Please start the browser first.")
+                continue
+            captcha = input("Enter text: ")
+            x = int(input("Enter x coordinate: "))
+            y = int(input("Enter y coordinate: "))
+            print(browser_api.input_text_at_coordinates(x, y, captcha))
 
-    browser_api.close_browser()
+        elif choice == "5":
+            if not browser_started:
+                print("Please start the browser first.")
+                continue
+            x = int(input("Enter x coordinate: "))
+            y = int(input("Enter y coordinate: "))
+            print(browser_api.click_at_coordinates(x, y))
+
+        elif choice == "6":
+            if not browser_started:
+                print("Browser not started.")
+            else:
+                browser_api.close_browser()
+                browser_started = False
+
+        elif choice == "0":
+            if browser_started:
+                browser_api.close_browser()
+            print("Exiting...")
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+

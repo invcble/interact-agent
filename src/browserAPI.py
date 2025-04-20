@@ -113,7 +113,6 @@ class BrowserAPI:
                 "error_message": f"Content refresh failed: {e}"
             }
 
-    
     def go_to_website(self, url):
         """Navigate to a specified URL."""
         if not self.driver:
@@ -141,9 +140,9 @@ class BrowserAPI:
 
     def click_at_coordinates(self, x, y):
         """
-        Click at screen coordinates (x, y). Tries to:
-        1. Locate the DOM element at (x, y) and click it precisely.
-        2. If that fails, falls back to offset-based clicking.
+        Click at screen coordinates (x, y). 
+        1. Tries to find a clickable DOM element at that point and click it.
+        2. Falls back to offset-based clicking if no element is found.
         """
         if not self.driver:
             return {
@@ -152,22 +151,46 @@ class BrowserAPI:
             }
 
         try:
-            element = self.driver.execute_script(
-                "return document.elementFromPoint(arguments[0], arguments[1]);", x, y
-            )
+            # Try to get clickable element from coordinates
+            element = self.driver.execute_script("""
+                const elem = document.elementFromPoint(arguments[0], arguments[1]);
+                if (!elem) return null;
+
+                if (['a', 'button', 'input', 'label'].includes(elem.tagName.toLowerCase())) {
+                    return elem;
+                }
+
+                const clickable = elem.querySelector('a, button, input, label');
+                return clickable || elem;
+            """, x, y)
 
             actions = ActionChains(self.driver)
+
             if element:
-                actions.move_to_element_with_offset(element, 1, 1).click().perform()
+                try:
+                    self.driver.execute_script("""
+                        const testElem = document.elementFromPoint(arguments[0], arguments[1]);
+                        if (testElem) {
+                            testElem.style.border = '2px solid red';
+                            testElem.setAttribute('data-click-target', 'true');
+                        }
+                    """, x, y)
+
+                    actions.move_to_element_with_offset(element, 1, 1).click().perform()
+                except Exception as click_error:
+                    print(f"Click on element failed, falling back to offset: {click_error}")
+                    actions.move_by_offset(x, y).click().perform()
             else:
+                print("No element returned. Clicking by offset fallback.")
                 actions.move_by_offset(x, y).click().perform()
 
+            print("-----------")
             time.sleep(5)
             content = self._get_page_content()
 
-            return { 
+            return {
                 "status": "success",
-                "content": content 
+                "content": content
             }
 
         except Exception as e:

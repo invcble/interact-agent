@@ -33,8 +33,18 @@ function getVisibleElementsInViewport() {
 
             // Get element text content
             let textContent = element.textContent.trim();
+
+            // If input has value (like a text field)
             if (element.tagName.toLowerCase() === 'input' && element.value) {
                 textContent = element.value;
+            }
+
+            // If input is radio/checkbox, try to get associated label text
+            if (element.tagName.toLowerCase() === 'input' && element.id) {
+                const label = document.querySelector(`label[for="${element.id}"]`);
+                if (label) {
+                    textContent = label.textContent.trim();
+                }
             }
 
             // Determine element type
